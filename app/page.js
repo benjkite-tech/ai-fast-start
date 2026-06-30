@@ -31,6 +31,7 @@ export default function Page() {
   // stories: { win: [str, ...], fail: [str, ...] } so users can add more than one.
   const [stories, setStories] = useState({ win: [""], fail: [""] });
   const [extraContext, setExtraContext] = useState("");
+  const [otherText, setOtherText] = useState({}); // { [questionId]: "their words" }
   const [orgName, setOrgName] = useState("");
   const [candid] = useState(false);
   const [read, setRead] = useState(null);
@@ -84,7 +85,7 @@ export default function Page() {
     setLoading(true);
     setError(null);
     setStep("read");
-    const { system, user } = buildPrompt({ answers, stories, extraContext, orgName, candid });
+    const { system, user } = buildPrompt({ answers, stories, extraContext, otherText, orgName, candid });
     try {
       const res = await fetch("/api/read", {
         method: "POST",
@@ -137,7 +138,7 @@ export default function Page() {
             <input
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
-              placeholder="Business name (optional)"
+              placeholder="Business name"
               style={{
                 fontFamily: font.body,
                 fontSize: 15,
@@ -152,18 +153,19 @@ export default function Page() {
             />
           </div>
           <button
-            onClick={() => setStep(0)}
+            onClick={() => orgName.trim() && setStep(0)}
+            disabled={!orgName.trim()}
             style={{
               marginTop: 26,
               fontFamily: font.display,
               fontSize: 24,
               letterSpacing: 1,
               padding: "14px 32px",
-              background: PALETTE.ink,
-              color: PALETTE.ground,
+              background: orgName.trim() ? PALETTE.ink : "#D8D4C9",
+              color: orgName.trim() ? PALETTE.ground : "#9A978E",
               border: "none",
               borderRadius: 8,
-              cursor: "pointer",
+              cursor: orgName.trim() ? "pointer" : "not-allowed",
             }}
           >
             START THE READ
@@ -232,6 +234,25 @@ export default function Page() {
                       </button>
                     );
                   })}
+                  {answers[q.id] != null && q.options[answers[q.id]]?.other && (
+                    <input
+                      value={otherText[q.id] || ""}
+                      onChange={(e) => setOtherText((p) => ({ ...p, [q.id]: e.target.value }))}
+                      placeholder="Tell us in your words (e.g. manufacturing, logistics)"
+                      autoFocus
+                      style={{
+                        fontFamily: font.body,
+                        fontSize: 15,
+                        padding: "11px 14px",
+                        borderRadius: 8,
+                        border: `1px solid ${section.accent}`,
+                        background: PALETTE.chalk,
+                        color: PALETTE.ink,
+                        outline: "none",
+                        marginTop: 2,
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -349,10 +370,6 @@ export default function Page() {
               rows={4}
               style={taStyle}
             />
-            <p style={{ fontSize: 12, color: PALETTE.ash, margin: "8px 0 0", lineHeight: 1.45 }}>
-              File upload is coming. For now, paste text. Nothing here is stored, it's used once to
-              write your read.
-            </p>
           </div>
 
           <NavRow

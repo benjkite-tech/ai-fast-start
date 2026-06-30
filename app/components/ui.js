@@ -107,10 +107,10 @@ export function LensBars({ scoreMap, posture, font }) {
 
 export function PhaseStrip({ journey, font }) {
   const phases = [
-    { n: 0, label: "On the field" },
-    { n: 1, label: "Individual" },
-    { n: 2, label: "Team" },
-    { n: 3, label: "Foundations" },
+    { n: 0, label: "Not started" },
+    { n: 1, label: "Individual wins" },
+    { n: 2, label: "Team wins" },
+    { n: 3, label: "Company wins" },
   ];
   return (
     <div style={{ marginTop: 24 }}>
