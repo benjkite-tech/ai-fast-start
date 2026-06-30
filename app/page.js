@@ -238,7 +238,7 @@ export default function Page() {
                     <input
                       value={otherText[q.id] || ""}
                       onChange={(e) => setOtherText((p) => ({ ...p, [q.id]: e.target.value }))}
-                      placeholder="Tell us in your words (e.g. manufacturing, logistics)"
+                      placeholder={q.options[answers[q.id]]?.otherHint || "Tell us in your words"}
                       autoFocus
                       style={{
                         fontFamily: font.body,
@@ -254,6 +254,30 @@ export default function Page() {
                     />
                   )}
                 </div>
+                {q.freeText && (
+                  <div style={{ marginTop: 12 }}>
+                    <label style={{ fontFamily: font.mono, fontSize: 12, color: PALETTE.ash, display: "block", marginBottom: 6 }}>
+                      {q.freeText.label.toUpperCase()}
+                    </label>
+                    <input
+                      value={otherText[q.freeText.id] || ""}
+                      onChange={(e) => setOtherText((p) => ({ ...p, [q.freeText.id]: e.target.value }))}
+                      placeholder={q.freeText.placeholder}
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        fontFamily: font.body,
+                        fontSize: 15,
+                        padding: "11px 14px",
+                        borderRadius: 8,
+                        border: `1px solid ${PALETTE.line}`,
+                        background: PALETTE.chalk,
+                        color: PALETTE.ink,
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
