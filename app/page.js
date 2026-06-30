@@ -25,6 +25,32 @@ import {
   shortQ,
 } from "./components/ui";
 
+function PrintStyles() {
+  return (
+    <style>{`
+      .print-header { display: none; }
+      @media print {
+        /* Force backgrounds and colours to actually print */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        /* Hide interactive chrome from the PDF */
+        .no-print { display: none !important; }
+        /* Show the deliverable header */
+        .print-header {
+          display: flex !important;
+          justify-content: space-between;
+          align-items: baseline;
+          border-bottom: 2px solid #1A1A17;
+          padding-bottom: 10px;
+          margin-bottom: 20px;
+        }
+        /* Tidy page margins and avoid awkward breaks */
+        @page { margin: 18mm; }
+        .read-body { break-inside: avoid; }
+      }
+    `}</style>
+  );
+}
+
 export default function Page() {
   const [step, setStep] = useState("intro");
   const [answers, setAnswers] = useState({});
@@ -485,16 +511,23 @@ export default function Page() {
         )}
         {read && !loading && (
           <>
+            <PrintStyles />
+            <div className="print-header">
+              <span style={{ fontFamily: font.display, fontSize: 22, letterSpacing: 1 }}>AI FAST START</span>
+              <span style={{ fontFamily: font.mono, fontSize: 12, color: PALETTE.ash }}>
+                {orgName ? `${orgName} · ` : ""}{new Date().toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}
+              </span>
+            </div>
             <PhaseStrip journey={journey} font={font} />
             <LensBars scoreMap={scoreMap} posture={postureDirection(answers)} font={font} />
-            <div style={{ marginTop: 28, padding: "28px 30px", background: PALETTE.chalk, border: `1px solid ${PALETTE.line}`, borderRadius: 12 }}>
+            <div style={{ marginTop: 28, padding: "28px 30px", background: PALETTE.chalk, border: `1px solid ${PALETTE.line}`, borderRadius: 12 }} className="read-body">
               {read.split(/\n\n+/).map((para, i) => (
                 <p key={i} style={{ fontSize: 17, lineHeight: 1.6, margin: "0 0 16px", fontWeight: i === 0 ? 500 : 400 }}>
                   {para}
                 </p>
               ))}
             </div>
-            <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <div className="no-print" style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button
                 onClick={() => navigator.clipboard?.writeText(`The Read${orgName ? " · " + orgName : ""}\n\n${read}`)}
                 style={btnStyle(font, PALETTE)}

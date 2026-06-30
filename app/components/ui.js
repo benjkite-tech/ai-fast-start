@@ -99,6 +99,7 @@ export function LensBars({ scoreMap, posture, font }) {
           >
             {posture}
           </span>
+          <span style={{ fontFamily: font.body, fontSize: 12, color: "#8A877E" }}>offence vs defence</span>
         </div>
       )}
     </div>
