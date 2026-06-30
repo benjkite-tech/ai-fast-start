@@ -5,11 +5,12 @@ import {
   PALETTE,
   SECTIONS,
   STORY,
+  CONTEXT_HINTS,
   SCORED,
-  SCORED_LABELS,
   totalQuestions,
   keyScore,
   placeOnJourney,
+  postureDirection,
 } from "../lib/diagnostic";
 import { buildPrompt } from "../lib/prompt";
 import {
@@ -27,7 +28,9 @@ import {
 export default function Page() {
   const [step, setStep] = useState("intro");
   const [answers, setAnswers] = useState({});
-  const [stories, setStories] = useState({});
+  // stories: { win: [str, ...], fail: [str, ...] } so users can add more than one.
+  const [stories, setStories] = useState({ win: [""], fail: [""] });
+  const [extraContext, setExtraContext] = useState("");
   const [orgName, setOrgName] = useState("");
   const [candid] = useState(false);
   const [read, setRead] = useState(null);
@@ -59,11 +62,29 @@ export default function Page() {
     return section.questions.every((q) => answers[q.id] != null);
   }
 
+  function setStoryAt(kind, i, val) {
+    setStories((p) => {
+      const arr = [...(p[kind] || [""])];
+      arr[i] = val;
+      return { ...p, [kind]: arr };
+    });
+  }
+  function addStory(kind) {
+    setStories((p) => ({ ...p, [kind]: [...(p[kind] || []), ""] }));
+  }
+  function removeStory(kind, i) {
+    setStories((p) => {
+      const arr = [...(p[kind] || [])];
+      arr.splice(i, 1);
+      return { ...p, [kind]: arr.length ? arr : [""] };
+    });
+  }
+
   async function generateRead() {
     setLoading(true);
     setError(null);
     setStep("read");
-    const { system, user } = buildPrompt({ answers, stories, orgName, candid });
+    const { system, user } = buildPrompt({ answers, stories, extraContext, orgName, candid });
     try {
       const res = await fetch("/api/read", {
         method: "POST",
@@ -89,7 +110,7 @@ export default function Page() {
       <div style={shell}>
         <FontLink />
         <div style={wrap}>
-          <Eyebrow>Yite Labs · AI Fast Start</Eyebrow>
+          <Eyebrow>AI Fast Start</Eyebrow>
           <h1 style={{ fontFamily: font.display, fontSize: 72, lineHeight: 0.92, margin: "12px 0 0", letterSpacing: 0.5 }}>
             PHASE 0:<br />THE DIAGNOSTIC
           </h1>
@@ -102,11 +123,16 @@ export default function Page() {
             You can't make those calls from guesswork. You earn them by getting on the field and
             banking real wins. This is the read that tells you where to start.
           </p>
-          <p style={{ fontSize: 15, color: PALETTE.ash, maxWidth: 580, marginTop: 14, lineHeight: 1.5 }}>
-            A baseline, not a verdict. About ten minutes, mostly taps. Out the other side: where you
-            stand, the one thing nobody's said, and the first win to chase. "Don't know" is a fine
-            answer anywhere it shows up.
-          </p>
+          <div style={{ marginTop: 18, maxWidth: 580 }}>
+            <p style={{ fontSize: 15, color: PALETTE.ink, margin: "0 0 6px", fontWeight: 500 }}>
+              What you get, in about ten minutes:
+            </p>
+            <p style={{ fontSize: 15, color: PALETTE.ash, margin: 0, lineHeight: 1.55 }}>
+              An honest read on where you stand, the one thing nobody's said out loud, and the first
+              win worth chasing. It's a baseline to start from, not a score or a verdict. Mostly taps,
+              and "don't know" is always a fair answer.
+            </p>
+          </div>
           <div style={{ marginTop: 26 }}>
             <input
               value={orgName}
@@ -214,7 +240,7 @@ export default function Page() {
             font={font}
             onBack={() => setStep(sectionIndex === 0 ? "intro" : sectionIndex - 1)}
             onNext={() => setStep(isLast ? "story" : sectionIndex + 1)}
-            nextLabel={isLast ? "Two examples" : "Next"}
+            nextLabel={isLast ? "Add context" : "Next"}
             nextDisabled={!sectionComplete(section)}
             accent={section.accent}
           />
@@ -223,47 +249,112 @@ export default function Page() {
     );
   }
 
-  // STORY
+  // STORY + CONTEXT
   if (step === "story") {
+    const taStyle = {
+      width: "100%",
+      boxSizing: "border-box",
+      fontFamily: font.body,
+      fontSize: 15,
+      lineHeight: 1.5,
+      padding: "12px 14px",
+      borderRadius: 8,
+      border: `1px solid ${PALETTE.line}`,
+      background: PALETTE.chalk,
+      color: PALETTE.ink,
+      resize: "vertical",
+      outline: "none",
+    };
     return (
       <div style={shell}>
         <FontLink />
         <div style={wrap}>
           <ProgressBar progress={100} />
           <h2 style={{ fontFamily: font.display, fontSize: 42, margin: "24px 0 4px", letterSpacing: 0.5 }}>
-            TWO REAL EXAMPLES
+            MAKE IT SHARP
           </h2>
           <p style={{ color: PALETTE.ash, fontSize: 16, marginTop: 0, lineHeight: 1.5 }}>
-            This is what makes the read sharp instead of generic. A line each is plenty. Skip if you've
-            genuinely got none.
+            This is the part that turns a generic read into yours. The more real detail you give, the
+            sharper it gets. All optional, skip what you like.
           </p>
-          {STORY.map((s) => (
-            <div key={s.id} style={{ marginTop: 22 }}>
-              <label style={{ fontFamily: font.mono, fontSize: 13, color: s.accent, display: "block", marginBottom: 8 }}>
-                {s.label.toUpperCase()}
-              </label>
-              <textarea
-                value={stories[s.id] || ""}
-                onChange={(e) => setStories((p) => ({ ...p, [s.id]: e.target.value }))}
-                placeholder={s.placeholder}
-                rows={3}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  fontFamily: font.body,
-                  fontSize: 15,
-                  lineHeight: 1.5,
-                  padding: "12px 14px",
-                  borderRadius: 8,
-                  border: `1px solid ${PALETTE.line}`,
-                  background: PALETTE.chalk,
-                  color: PALETTE.ink,
-                  resize: "vertical",
-                  outline: "none",
-                }}
-              />
-            </div>
-          ))}
+
+          {STORY.map((s) => {
+            const arr = stories[s.id] || [""];
+            return (
+              <div key={s.id} style={{ marginTop: 26 }}>
+                <label style={{ fontFamily: font.mono, fontSize: 13, color: s.accent, display: "block", marginBottom: 8 }}>
+                  {s.label.toUpperCase()}
+                </label>
+                {arr.map((val, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+                    <textarea
+                      value={val}
+                      onChange={(e) => setStoryAt(s.id, i, e.target.value)}
+                      placeholder={s.placeholder}
+                      rows={2}
+                      style={taStyle}
+                    />
+                    {arr.length > 1 && (
+                      <button
+                        onClick={() => removeStory(s.id, i)}
+                        aria-label="Remove"
+                        style={{
+                          fontFamily: font.body,
+                          fontSize: 18,
+                          lineHeight: 1,
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          border: `1px solid ${PALETTE.line}`,
+                          background: "transparent",
+                          color: PALETTE.ash,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={() => addStory(s.id)}
+                  style={{
+                    fontFamily: font.body,
+                    fontSize: 13,
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: `1px dashed ${PALETTE.line}`,
+                    background: "transparent",
+                    color: PALETTE.ash,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add another
+                </button>
+              </div>
+            );
+          })}
+
+          <div style={{ marginTop: 30 }}>
+            <label style={{ fontFamily: font.mono, fontSize: 13, color: PALETTE.denim, display: "block", marginBottom: 6 }}>
+              ANYTHING ELSE THAT'D SHARPEN THIS?
+            </label>
+            <p style={{ fontSize: 13, color: PALETTE.ash, margin: "0 0 10px", lineHeight: 1.5 }}>
+              Paste in whatever helps. For example: {CONTEXT_HINTS.join(", ").toLowerCase()}. The more
+              it knows, the better the read.
+            </p>
+            <textarea
+              value={extraContext}
+              onChange={(e) => setExtraContext(e.target.value)}
+              placeholder="Paste any context here, or leave it blank."
+              rows={4}
+              style={taStyle}
+            />
+            <p style={{ fontSize: 12, color: PALETTE.ash, margin: "8px 0 0", lineHeight: 1.45 }}>
+              File upload is coming. For now, paste text. Nothing here is stored, it's used once to
+              write your read.
+            </p>
+          </div>
+
           <NavRow
             font={font}
             onBack={() => setStep(SECTIONS.length - 1)}
@@ -333,7 +424,10 @@ export default function Page() {
     <div style={shell}>
       <FontLink />
       <div style={wrap}>
-        <Eyebrow>Baseline read {orgName ? `· ${orgName}` : ""}</Eyebrow>
+        <Eyebrow>The Read {orgName ? `· ${orgName}` : ""}</Eyebrow>
+        <p style={{ fontFamily: font.body, fontSize: 14, color: PALETTE.ash, margin: "4px 0 0" }}>
+          Where you stand, and the first win to chase.
+        </p>
         {loading && (
           <div style={{ marginTop: 40, textAlign: "center" }}>
             <p style={{ fontFamily: font.display, fontSize: 32, letterSpacing: 1, color: PALETTE.ash }}>
@@ -351,7 +445,7 @@ export default function Page() {
         {read && !loading && (
           <>
             <PhaseStrip journey={journey} font={font} />
-            <LensBars scoreMap={scoreMap} font={font} />
+            <LensBars scoreMap={scoreMap} posture={postureDirection(answers)} font={font} />
             <div style={{ marginTop: 28, padding: "28px 30px", background: PALETTE.chalk, border: `1px solid ${PALETTE.line}`, borderRadius: 12 }}>
               {read.split(/\n\n+/).map((para, i) => (
                 <p key={i} style={{ fontSize: 17, lineHeight: 1.6, margin: "0 0 16px", fontWeight: i === 0 ? 500 : 400 }}>
@@ -361,7 +455,7 @@ export default function Page() {
             </div>
             <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button
-                onClick={() => navigator.clipboard?.writeText(`AI Fast Start — Baseline read${orgName ? " · " + orgName : ""}\n\n${read}`)}
+                onClick={() => navigator.clipboard?.writeText(`The Read${orgName ? " · " + orgName : ""}\n\n${read}`)}
                 style={btnStyle(font, PALETTE)}
               >
                 Copy the read
@@ -372,7 +466,8 @@ export default function Page() {
                   setStep("intro");
                   setRead(null);
                   setAnswers({});
-                  setStories({});
+                  setStories({ win: [""], fail: [""] });
+                  setExtraContext("");
                 }}
                 style={{ ...btnStyle(font, PALETTE), border: "none", background: "transparent", color: PALETTE.ash }}
               >
@@ -381,7 +476,7 @@ export default function Page() {
             </div>
             <p style={{ marginTop: 28, fontSize: 13, color: PALETTE.ash, lineHeight: 1.5 }}>
               This is a baseline, not the whole story. It's here to point at the first wins, not grade
-              you. The real value is in the conversation that follows. yitelabs.co
+              you. The real value is in the conversation that follows.
             </p>
           </>
         )}

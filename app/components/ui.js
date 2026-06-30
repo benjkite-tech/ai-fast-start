@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { SCORED, SCORED_LABELS } from "../../lib/diagnostic";
+import { SCORED, SCORED_LABELS, LENS_ACCENTS, band } from "../../lib/diagnostic";
 
 export function FontLink() {
   return (
@@ -55,35 +55,52 @@ export function NavRow({ font, onBack, onNext, nextLabel, nextDisabled, accent }
   );
 }
 
-export function LensBars({ scoreMap, font }) {
-  const accents = {
-    tools: "#D85A30",
-    data: "#185FA5",
-    people: "#1D9E75",
-    security: "#BA7517",
-    ownership: "#D4537E",
-    posture: "#534AB7",
-  };
+export function LensBars({ scoreMap, posture, font }) {
   return (
     <div style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+        <span style={{ fontFamily: font.mono, fontSize: 12, color: "#1A1A17", letterSpacing: 0.5 }}>
+          WHERE YOU SIT, BY AREA
+        </span>
+        <span style={{ fontFamily: font.body, fontSize: 12, color: "#8A877E" }}>
+          how far along, not a grade
+        </span>
+      </div>
       {SCORED.map((k) => {
         const s = scoreMap[k];
         const pct = Math.round(s.score * 100);
         return (
-          <div key={k} style={{ marginBottom: 12 }}>
+          <div key={k} style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
               <span style={{ fontFamily: font.mono, fontSize: 12, color: "#1A1A17", letterSpacing: 0.5 }}>
                 {SCORED_LABELS[k].toUpperCase()}
                 {s.dk > 0 && <span style={{ color: "#8A877E" }}> · {s.dk} unsure</span>}
               </span>
-              <span style={{ fontFamily: font.mono, fontSize: 12, color: "#8A877E" }}>{pct}%</span>
+              <span style={{ fontFamily: font.body, fontSize: 12, color: "#8A877E" }}>{band(s.score)}</span>
             </div>
             <div style={{ height: 8, background: "#E2DED3", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: accents[k], borderRadius: 4 }} />
+              <div style={{ height: "100%", width: `${pct}%`, background: LENS_ACCENTS[k], borderRadius: 4 }} />
             </div>
           </div>
         );
       })}
+      {posture && posture !== "not set" && (
+        <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: font.mono, fontSize: 12, color: "#1A1A17", letterSpacing: 0.5 }}>LEANING</span>
+          <span
+            style={{
+              fontFamily: font.body,
+              fontSize: 13,
+              padding: "3px 12px",
+              borderRadius: 20,
+              background: "rgba(83,74,183,0.1)",
+              color: "#534AB7",
+            }}
+          >
+            {posture}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
